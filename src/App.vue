@@ -22,13 +22,27 @@
         </div>
         <div id="navbarMenuHero" class="navbar-menu">
           <div class="navbar-end">
-            <a class="navbar-item is-active" @click="toggleMenu($event)">
+            <a
+              class="navbar-item"
+              v-bind:class="{
+                'is-active': !(loginState || registerState) || loggedIn,
+              }"
+              @click="map"
+            >
               Map
             </a>
-            <a class="navbar-item" @click="logIn($event)">
+            <a
+              class="navbar-item"
+              v-bind:class="{ 'is-active': loginState && !loggedIn }"
+              @click="login"
+            >
               Log in
             </a>
-            <a class="navbar-item" @click="toggleMenu($event)">
+            <a
+              class="navbar-item"
+              v-bind:class="{ 'is-active': registerState && !loggedIn }"
+              @click="register"
+            >
               Sign up
             </a>
           </div>
@@ -37,8 +51,8 @@
     </nav>
     <section class="map App"></section>
 
-    <login-panel v-if="loginState"></login-panel>
-    <register-panel v-if="registerState"></register-panel>
+    <login-panel v-if="loginState && !loggedIn"></login-panel>
+    <register-panel v-if="registerState && !loggedIn"></register-panel>
   </main>
 </template>
 
@@ -47,29 +61,44 @@ import LoginPanel from "./components/Login.vue";
 import RegisterPanel from "./components/Signup.vue";
 import gmapsInit from "./utils/gmaps.js";
 
+import User from "./models/user";
+
 export default {
   name: "App",
   data: function() {
     return {
-      loginState: true,
-      registerState: false,
+      user: new User("", ""),
+      loginState: false,
+      registerState: true,
     };
+  },
+  computed: {
+    loggedIn() {
+      return this.$store.state.auth.status.loggedIn;
+    },
+  },
+  created() {
+    if (this.loggedIn) {
+      this.loginState = false;
+      this.registerState = false;
+    }
   },
   methods: {
     openMobileMenu() {
       document.querySelector(".navbar-menu").classList.toggle("is-active");
       document.querySelector(".navbar-burger").classList.toggle("is-active");
     },
-    logIn(el) {
-      this.toggleMenu();
-      el.target.classList.add("is-active");
-      this.loginState = true;
+    map() {
+      this.loginState = false;
+      this.registerState = false;
     },
-    toggleMenu() {
-      const menuItems = document.querySelectorAll(".navbar-item");
-      for (let item of menuItems) {
-        item.classList.remove("is-active");
-      }
+    login() {
+      this.loginState = true;
+      this.registerState = false;
+    },
+    register() {
+      this.loginState = false;
+      this.registerState = true;
     },
   },
   components: {

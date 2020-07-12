@@ -8,7 +8,7 @@ const User = require("../models/User.js");
 
 users.use(cors());
 
-process.env.SECRET_KEY = "secret";
+process.env.SECRET_KEY = "secret-key-which-is-very-longpepeLaugh";
 
 users.post("/register", (req, res) => {
     const userData = {
@@ -29,6 +29,7 @@ users.post("/register", (req, res) => {
             User.create(userData)
                 .then((user) => {
                     user.dataValues.id = user.null;
+
                     let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
                         expiresIn: 1440,
                     });
@@ -62,19 +63,13 @@ users.post("/login", (req, res) => {
             let pass = bcrypt.compareSync(userData.password, user.password);
 
             if (pass) {
-                User.create(userData)
-                    .then((user) => {
-                        user.dataValues.id = user.null;
-                        let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
-                            expiresIn: 1440,
-                        });
-                        res.json({
-                            token: token,
-                        });
-                    })
-                    .catch((error) => {
-                        res.send("Error: " + error);
-                    });
+                user.dataValues.id = user.null;
+                let token = jwt.sign(user.dataValues, process.env.SECRET_KEY, {
+                    expiresIn: 1440,
+                });
+                res.json({
+                    token: token,
+                });
             } else {
                 res.send("Wrong password");
             }

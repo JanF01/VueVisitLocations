@@ -9,7 +9,7 @@
           <div class="field">
             <div class="control">
               <input
-                v-model="username"
+                v-model="user.username"
                 type="text"
                 class="input is-large"
                 placeholder="Login"
@@ -20,7 +20,7 @@
           <div class="field">
             <div class="control">
               <input
-                v-model="password"
+                v-model="user.password"
                 type="password"
                 class="input is-large"
                 placeholder="Password"
@@ -28,7 +28,10 @@
               />
             </div>
           </div>
-          <button class="button is-block is-info is-large is-fullwidth">
+          <button
+            type="submit"
+            class="button is-block is-info is-large is-fullwidth"
+          >
             Login
           </button>
         </form>
@@ -39,41 +42,29 @@
 
 <script>
 import Vue from "vue";
+import User from "../models/user";
 
 export default {
   name: "login-panel",
   data: function() {
     return {
-      username: "",
-      password: "",
+      user: new User("", ""),
+      loading: false,
     };
   },
   methods: {
     async sendLoginRequest() {
-      var body = {
-        username: this.username,
-        password: this.password,
-      };
-      try {
-        fetch("http://localhost:3000/api/login", {
-          method: "POST",
-          body: JSON.stringify(body),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-          .then((response) => {
-            response.text().then((value) => {
-              if (value == "User does not exist") {
-                Vue.toasted.global.noUser().goAway(2900);
-              } else if (value == "Wrong password") {
-                Vue.toasted.global.wrongPassword().goAway(2900);
-              }
-            });
-          })
-          .then(() => {});
-      } catch (error) {
-        console.log(error);
+      this.loading = true;
+      if (this.user.username && this.user.password) {
+        await this.$store.dispatch("auth/login", this.user).then(
+          () => {},
+          (error) => {
+            this.loading = false;
+            console.log(", errorString: " + error.toString());
+          }
+        );
+      } else {
+        Vue.toasted.global.noData().goAway(2900);
       }
     },
   },

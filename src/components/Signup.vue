@@ -5,11 +5,11 @@
         <h3 class="title has-text-black">Sign up</h3>
         <hr class="login-hr is-dark" />
         <p class="subtitle has-text-black">Create your own map</p>
-        <form>
+        <form @submit.prevent="register">
           <div class="field">
             <div class="control">
               <input
-                v-model="login"
+                v-model="username"
                 type="text"
                 class="input"
                 placeholder="Login"
@@ -50,7 +50,10 @@
               />
             </div>
           </div>
-          <button class="button is-block is-info is-large is-fullwidth">
+          <button
+            type="submit"
+            class="button is-block is-info is-large is-fullwidth"
+          >
             Login
           </button>
         </form>
@@ -60,13 +63,26 @@
 </template>
 
 <script>
+import AuthService from "../services/auth.service";
+
 export default {
   name: "register-panel",
-  props: {
-    login: String,
-    password: String,
-    passwordr: String,
-    email: String,
+  data: function() {
+    return {
+      username: "",
+      password: "",
+      passwordr: "",
+      email: "",
+    };
+  },
+  methods: {
+    sendRegisterRequest() {
+      AuthService.register({
+        username: this.username,
+        password: this.password,
+        email: this.email,
+      });
+    },
   },
 };
 </script>
@@ -78,8 +94,17 @@ export default {
 #register-panel {
   position: absolute;
   top: 22%;
-  left: 14%;
   width: 80%;
+}
+@media (max-width: 4000px) {
+  #register-panel {
+    left: 14%;
+  }
+}
+@media (max-width: 1700px) {
+  #register-panel {
+    left: 11%;
+  }
 }
 .box h3 {
   margin-top: 1em;
