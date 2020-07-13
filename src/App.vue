@@ -27,13 +27,14 @@
               v-bind:class="{
                 'is-active': !(loginState || registerState) || loggedIn,
               }"
-              @click="map"
+              @click="goMap"
             >
               Map
             </a>
             <a
               class="navbar-item"
               v-bind:class="{ 'is-active': loginState && !loggedIn }"
+              v-if="!loggedIn"
               @click="login"
             >
               Log in
@@ -41,11 +42,12 @@
             <a
               class="navbar-item"
               v-bind:class="{ 'is-active': registerState && !loggedIn }"
+              v-if="!loggedIn"
               @click="register"
             >
               Sign up
             </a>
-            <a class="navbar-item" @click="logOut">
+            <a class="navbar-item" @click="logOut" v-if="loggedIn">
               Log out
             </a>
           </div>
@@ -54,9 +56,16 @@
     </nav>
     <section class="map App"></section>
 
-    <login-panel v-if="loginState && !loggedIn"></login-panel>
-    <register-panel v-if="registerState && !loggedIn"></register-panel>
-    <edit-marker v-if="editMarker" v-bind:marker="editedMarker"></edit-marker>
+    <login-panel v-if="loginPanel && !loggedIn"></login-panel>
+    <register-panel
+      v-if="registerPanel && !loggedIn"
+      @pogchamp="login"
+    ></register-panel>
+    <edit-marker
+      v-if="editMarker"
+      v-bind:marker="editedMarker"
+      @edited="markerEdited"
+    ></edit-marker>
   </main>
 </template>
 
@@ -80,11 +89,18 @@ export default {
       editMarker: false,
       markers: [],
       editedMarker: null,
+      map: null,
     };
   },
   computed: {
     loggedIn() {
       return this.$store.state.auth.status.loggedIn;
+    },
+    loginPanel() {
+      return this.loginState;
+    },
+    registerPanel() {
+      return this.registerState;
     },
   },
   created() {
@@ -98,7 +114,7 @@ export default {
       document.querySelector(".navbar-menu").classList.toggle("is-active");
       document.querySelector(".navbar-burger").classList.toggle("is-active");
     },
-    map() {
+    goMap() {
       this.loginState = false;
       this.registerState = false;
     },
@@ -112,6 +128,78 @@ export default {
     },
     logOut() {
       this.$store.dispatch("auth/logout", this.user);
+    },
+    markerEdited() {
+      this.editMarker = false;
+      this.marker = null;
+      this.getPoints();
+    },
+    async getPoints() {
+      for (let i = 0; i < this.markers.length; i++) {
+        this.markers[i].setMap(null);
+      }
+      this.markers.length = 0;
+
+      const google = await gmapsInit();
+
+      var pinColor = "black";
+
+      var pinSVGHole =
+        "M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z";
+      var labelOriginHole = new google.maps.Point(12, 15);
+
+      var markerImage = {
+        path: pinSVGHole,
+        anchor: new google.maps.Point(12, 17),
+        fillOpacity: 1,
+        fillColor: pinColor,
+        strokeWeight: 1,
+        strokeColor: "black",
+        scale: 2,
+        labelOrigin: labelOriginHole,
+      };
+
+      UserService.getUserPoints().then(
+        (points) => {
+          for (let marker of points.data) {
+            let Marker = new google.maps.Marker({
+              position: {
+                lat: parseFloat(marker.lat),
+                lng: parseFloat(marker.lng),
+              },
+              map: this.map,
+              title: marker.title,
+              icon: markerImage,
+              animation: google.maps.Animation.BOUNCE,
+            });
+
+            Marker.addListener("click", () => {
+              this.map.setZoom(11);
+              this.map.setCenter(Marker.getPosition());
+              this.map.panBy(0, 200);
+
+              this.editMarker = true;
+              this.editedMarker = new MarkerInfo(
+                null,
+                parseFloat(marker.lat),
+                parseFloat(marker.lng),
+                marker.title,
+                marker.description,
+                marker.date
+              );
+            });
+
+            setTimeout(() => {
+              Marker.setAnimation(null);
+            }, 1000);
+
+            this.markers.push(Marker);
+          }
+        },
+        (error) => {
+          return Promise.reject(error);
+        }
+      );
     },
   },
   components: {
@@ -251,6 +339,8 @@ export default {
         ],
       });
 
+      this.map = map;
+
       geocoder.geocode({ address: "Poland" }, (result, status) => {
         if (status !== "OK" || !result[0]) {
           throw new Error(status);
@@ -285,47 +375,7 @@ export default {
           }
         );
 
-        UserService.getUserPoints().then(
-          (points) => {
-            for (let marker of points.data) {
-              let Marker = new google.maps.Marker({
-                position: {
-                  lat: parseFloat(marker.lat),
-                  lng: parseFloat(marker.lng),
-                },
-                map: map,
-                title: marker.title,
-                icon: markerImage,
-                animation: google.maps.Animation.BOUNCE,
-              });
-
-              Marker.addListener("click", () => {
-                map.setZoom(11);
-                map.setCenter(Marker.getPosition());
-                map.panBy(0, 200);
-
-                this.editMarker = true;
-                this.editedMarker = new MarkerInfo(
-                  null,
-                  parseFloat(marker.lat),
-                  parseFloat(marker.lng),
-                  marker.title,
-                  marker.description,
-                  marker.date
-                );
-              });
-
-              setTimeout(() => {
-                Marker.setAnimation(null);
-              }, 1000);
-
-              this.markers.push(Marker);
-            }
-          },
-          (error) => {
-            return Promise.reject(error);
-          }
-        );
+        this.getPoints(google);
       }
 
       map.addListener("click", (event) => {
@@ -364,6 +414,8 @@ export default {
         setTimeout(() => {
           Marker.setAnimation(null);
         }, 600);
+
+        this.markers.push(Marker);
       });
       map.addListener("drag", () => {
         this.editMarker = false;

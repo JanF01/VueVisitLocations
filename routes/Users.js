@@ -13,9 +13,23 @@ const jwt_decode = require("jwt-decode");
 
 const marker = require("../models/markerData");
 
+const Joi = require("@hapi/joi")
+
 users.use(cors());
 
 process.env.SECRET_KEY = "secret-key-which-is-very-longpepeLaugh";
+
+var regiSchema = new Joi.object({
+    username: Joi.string()
+        .min(3)
+        .max(30)
+        .required(),
+    email: Joi.string().email().max(150).required(),
+    password: Joi.string().min(5).max(255).required(),
+    locationsVisited: Joi.number()
+})
+
+
 
 users.get("/public", (req, res) => {
     res.send(jwt_decode(req.headers["x-access-token"]));
@@ -99,30 +113,37 @@ users.post("/register", (req, res) => {
         locationsVisited: 0,
     };
 
-    User.findOne({
-        where: {
-            username: userData.username,
-        },
-    }).then(
-        (user) => {
-            if (!user) {
-                let hash = bcrypt.hashSync(userData.password, 10);
-                userData.password = hash;
-                User.create(userData)
-                    .then((user) => {
-                        res.send("Success");
-                    })
-                    .catch((error) => {
-                        res.send("Error: " + error);
-                    });
-            } else {
-                res.send("Nick used");
+    var valid = regiSchema.validate(userData);
+
+    if (valid.error === null) {
+
+        User.findOne({
+            where: {
+                username: userData.username,
+            },
+        }).then(
+            (user) => {
+                if (!user) {
+                    let hash = bcrypt.hashSync(userData.password, 10);
+                    userData.password = hash;
+                    User.create(userData)
+                        .then((user) => {
+                            res.send("Success");
+                        })
+                        .catch((error) => {
+                            res.send("Error: " + error);
+                        });
+                } else {
+                    res.send("Nick used");
+                }
+            },
+            (error) => {
+                console.log(error);
             }
-        },
-        (error) => {
-            console.log(error);
-        }
-    );
+        );
+    } else {
+        res.send("Password too short");
+    }
 });
 
 users.post("/login", (req, res) => {

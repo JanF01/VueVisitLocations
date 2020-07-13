@@ -6,7 +6,7 @@ const API_URL = "http://localhost:3000/api/";
 
 class AuthService {
 
-    login(body) {
+    async login(body) {
         return axios.post(API_URL + "login", body)
             .then((response) => {
                 if (response.data == "User does not exist") {
@@ -26,15 +26,15 @@ class AuthService {
         window.location.reload();
     }
 
-    register(body) {
+    async register(body) {
         if (body.password == body.passwordr) {
 
-            axios.post(API_URL + "register", body)
+            return axios.post(API_URL + "register", body)
                 .then((response) => {
                     if (response.data == "Nick used") {
                         Vue.toasted.global.nickUsed().goAway(2900);
                         return new Error;
-                    } else if (response.data == "Password too weak") {
+                    } else if (response.data == "Password too short") {
                         Vue.toasted.global.passwordError().goAway(2900);
                         return new Error;
                     } else if (response.data != undefined) {

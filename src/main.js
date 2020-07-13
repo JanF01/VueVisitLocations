@@ -12,6 +12,24 @@ Vue.use(Vuetify, {
   iconfont: "md",
 });
 
+
+
+// Markers
+
+Vue.toasted.register("markerSuccess", "Marker Edited", {
+  type: 'success',
+  icon: "check_circle"
+});
+
+Vue.toasted.register("markerError", "There was an issue", {
+  type: 'error',
+  icon: "error_outline"
+});
+
+
+
+// RegisterLogin
+
 Vue.toasted.register("passwordsDontMatch", "Passwords don't match", {
   type: "error",
   icon: "error_outline",
@@ -42,7 +60,7 @@ Vue.toasted.register("wrongPassword", "Incorrect Password", {
   icon: "error_outline",
 });
 
-Vue.toasted.register("loginShort", "Too short login", {
+Vue.toasted.register("loginShort", "Too short login (3 minimum)", {
   type: "error",
   icon: "error_outline",
 });
@@ -52,7 +70,7 @@ Vue.toasted.register("noData", "Fill in login and password", {
   icon: "error_outline",
 });
 
-Vue.toasted.register("passwordError", "Didn't pass password requirements", {
+Vue.toasted.register("passwordError", "Password too short (5 minimum)", {
   type: "error",
   icon: "error_outline",
 });

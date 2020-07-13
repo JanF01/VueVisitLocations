@@ -39,6 +39,7 @@
 
 <script>
 import UserService from "../services/user.service";
+import Vue from "vue";
 
 export default {
   name: "edit-marker",
@@ -49,10 +50,12 @@ export default {
     async sendEditRequest() {
       UserService.editMarker(this.marker).then(
         (result) => {
-          console.log(result);
+          Vue.toasted.global.markerSuccess().goAway(2900);
+          this.$emit("edited", result);
         },
         (error) => {
           console.log(error);
+          Vue.toasted.global.markerError().goAway(2900);
         }
       );
     },

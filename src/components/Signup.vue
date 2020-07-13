@@ -83,13 +83,19 @@ export default {
         this.user.passwordr &&
         this.user.email
       ) {
-        await this.$store.dispatch("auth/register", this.user).then(
-          () => {},
-          (error) => {
-            this.loading = false;
-            console.log(", errorString: " + error.toString());
-          }
-        );
+        if (this.user.username.length < 3) {
+          Vue.toasted.global.loginShort().goAway(2900);
+        } else {
+          await this.$store.dispatch("auth/register", this.user).then(
+            (user) => {
+              this.$emit("pogchamp", user);
+            },
+            (error) => {
+              this.loading = false;
+              console.log(", errorString: " + error.toString());
+            }
+          );
+        }
       } else {
         Vue.toasted.global.noData().goAway(2900);
       }

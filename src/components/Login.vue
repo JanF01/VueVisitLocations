@@ -58,14 +58,15 @@ export default {
       if (this.user.username && this.user.password) {
         if (this.user.username.length < 3) {
           Vue.toasted.global.loginShort().goAway(2900);
+        } else {
+          await this.$store.dispatch("auth/login", this.user).then(
+            () => {},
+            (error) => {
+              this.loading = false;
+              console.log(", errorString: " + error.toString());
+            }
+          );
         }
-        await this.$store.dispatch("auth/login", this.user).then(
-          () => {},
-          (error) => {
-            this.loading = false;
-            console.log(", errorString: " + error.toString());
-          }
-        );
       } else {
         Vue.toasted.global.noData().goAway(2900);
       }

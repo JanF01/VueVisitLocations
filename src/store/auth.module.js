@@ -19,10 +19,10 @@ export const auth = {
     namespaced: true,
     state: InitialState,
     actions: {
-        login({
+        async login({
             commit
         }, user) {
-            AuthService.login(user).then(
+            await AuthService.login(user).then(
                 (user) => {
                     if (user != undefined) {
                         commit("loginSuccess", user);
@@ -30,6 +30,7 @@ export const auth = {
                         return Promise.resolve(user);
                     } else {
                         commit("loginFailure");
+                        return Promise.reject(user);
                     }
                 },
                 (error) => {
@@ -45,13 +46,14 @@ export const auth = {
             commit("logout");
             AuthService.logout();
         },
-        register({
+        async register({
             commit
         }, user) {
-            AuthService.register(user).then(
-                (user) => {
+            await AuthService.register(user).then(
+                (response) => {
+                    console.log(response.data);
                     commit("registerSuccess");
-                    return Promise.resolve(user);
+                    return Promise.resolve(response.data);
                 },
                 (error) => {
                     commit("registerFailure");
