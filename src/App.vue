@@ -56,7 +56,7 @@
 
     <login-panel v-if="loginState && !loggedIn"></login-panel>
     <register-panel v-if="registerState && !loggedIn"></register-panel>
-    <edit-marker v-if="editMarker"></edit-marker>
+    <edit-marker v-if="editMarker" v-bind:marker="editedMarker"></edit-marker>
   </main>
 </template>
 
@@ -64,10 +64,11 @@
 import LoginPanel from "./components/Login.vue";
 import RegisterPanel from "./components/Signup.vue";
 import EditMarker from "./components/EditMarker.vue";
-import GetService from "./services/user.service";
+import UserService from "./services/user.service";
 import gmapsInit from "./utils/gmaps.js";
 
 import User from "./models/user";
+import MarkerInfo from "./models/marker";
 
 export default {
   name: "App",
@@ -77,6 +78,8 @@ export default {
       loginState: false,
       registerState: true,
       editMarker: false,
+      markers: [],
+      editedMarker: null,
     };
   },
   computed: {
@@ -118,21 +121,6 @@ export default {
   },
   async mounted() {
     try {
-      GetService.getUserPoints().then(
-        (points) => {
-          console.log(points.data);
-        },
-        (error) => {
-          return Promise.reject(error);
-        }
-      );
-      GetService.getUserPublic().then(
-        () => {},
-        (error) => {
-          return Promise.reject(error);
-        }
-      );
-
       const google = await gmapsInit();
       const geocoder = new google.maps.Geocoder();
       const map = new google.maps.Map(document.querySelector(".App"), {
@@ -289,6 +277,57 @@ export default {
         labelOrigin: labelOriginHole,
       };
 
+      if (this.loggedIn) {
+        UserService.getUserPublic().then(
+          () => {},
+          (error) => {
+            return Promise.reject(error);
+          }
+        );
+
+        UserService.getUserPoints().then(
+          (points) => {
+            for (let marker of points.data) {
+              let Marker = new google.maps.Marker({
+                position: {
+                  lat: parseFloat(marker.lat),
+                  lng: parseFloat(marker.lng),
+                },
+                map: map,
+                title: marker.title,
+                icon: markerImage,
+                animation: google.maps.Animation.BOUNCE,
+              });
+
+              Marker.addListener("click", () => {
+                map.setZoom(11);
+                map.setCenter(Marker.getPosition());
+                map.panBy(0, 200);
+
+                this.editMarker = true;
+                this.editedMarker = new MarkerInfo(
+                  null,
+                  parseFloat(marker.lat),
+                  parseFloat(marker.lng),
+                  marker.title,
+                  marker.description,
+                  marker.date
+                );
+              });
+
+              setTimeout(() => {
+                Marker.setAnimation(null);
+              }, 1000);
+
+              this.markers.push(Marker);
+            }
+          },
+          (error) => {
+            return Promise.reject(error);
+          }
+        );
+      }
+
       map.addListener("click", (event) => {
         this.editMarker = false;
         var Marker = new google.maps.Marker({
@@ -298,16 +337,18 @@ export default {
           icon: markerImage,
           animation: google.maps.Animation.BOUNCE,
         });
-        GetService.addMarker({
-          title: Marker.title,
-          description: "",
-          lat: Marker.getPosition().lat(),
-          lng: Marker.getPosition().lng(),
-          date: "2020-07-13",
-        }).then(
-          (points) => {
-            console.log(points.data);
-          },
+
+        let info = new MarkerInfo(
+          null,
+          Marker.getPosition().lat(),
+          Marker.getPosition().lng(),
+          Marker.title,
+          "",
+          Date.now()
+        );
+
+        UserService.addMarker(info).then(
+          () => {},
           (error) => {
             return Promise.reject(error);
           }
@@ -318,6 +359,7 @@ export default {
           map.panBy(0, 200);
 
           this.editMarker = true;
+          this.editedMarker = info;
         });
         setTimeout(() => {
           Marker.setAnimation(null);

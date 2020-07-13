@@ -26,6 +26,7 @@ export const auth = {
                 (user) => {
                     if (user != undefined) {
                         commit("loginSuccess", user);
+                        window.location.reload();
                         return Promise.resolve(user);
                     } else {
                         commit("loginFailure");

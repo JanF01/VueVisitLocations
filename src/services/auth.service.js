@@ -23,6 +23,7 @@ class AuthService {
 
     logout() {
         localStorage.removeItem('user');
+        window.location.reload();
     }
 
     register(body) {

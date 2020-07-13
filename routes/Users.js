@@ -5,10 +5,13 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const users = express.Router();
 
+
 const User = require("../models/User.js");
 const Marker = require("../models/markers.js");
 
 const jwt_decode = require("jwt-decode");
+
+const marker = require("../models/markerData");
 
 users.use(cors());
 
@@ -20,23 +23,25 @@ users.get("/public", (req, res) => {
 
 users.get("/points", (req, res) => {
     let user = jwt_decode(req.headers["x-access-token"]);
-    let markers = Marker.findAll({
+
+    Marker.findAll({
         where: {
             userId: user.id,
         },
+    }).then((markers) => {
+        if (markers) {
+            res.send(markers);
+        }
     });
 });
 
 users.post("/addMarker", (req, res) => {
-    let markerData = {
-        userId: req.body.userId,
-        title: req.body.title,
-        description: req.body.description,
-        lat: req.body.lat,
-        lng: req.body.lng,
-        date: req.body.date
-    }
-
+    var markerData = new marker.Data(req.body.userId,
+        req.body.title,
+        req.body.description,
+        req.body.lat,
+        req.body.lng,
+        req.body.date);
 
     Marker.findOne({
         where: {
@@ -53,6 +58,35 @@ users.post("/addMarker", (req, res) => {
             });
         } else {
             res.send("Marker exists");
+        }
+    })
+})
+
+users.post("/editMarker", (req, res) => {
+    var markerData = new marker.Data(req.body.userId,
+        req.body.title,
+        req.body.description,
+        req.body.lat,
+        req.body.lng,
+        req.body.date);
+
+
+    Marker.findOne({
+        where: {
+            lat: markerData.lat,
+            lng: markerData.lng
+        }
+    }).then(async function (marker) {
+        if (marker) {
+            marker.title = markerData.title;
+            marker.description = markerData.description;
+            marker.date = markerData.date;
+
+            await marker.save().then((result) => {
+                res.send("Success");
+            });
+        } else {
+            res.send("Marker not found");
         }
     })
 })

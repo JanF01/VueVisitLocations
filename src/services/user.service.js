@@ -29,16 +29,19 @@ class UserService {
             });
     }
     addMarker(marker) {
-        let markerData = {
-            userId: userId,
-            title: marker.title,
-            description: marker.description,
-            lat: marker.lat,
-            lng: marker.lng,
-            date: marker.date
-        }
+        marker.userId = userId;
+
         return axios
-            .post(API_URL + "addMarker", markerData)
+            .post(API_URL + "addMarker", marker)
+            .then((result) => {
+                return result;
+            });
+    }
+
+    editMarker(marker) {
+        marker.userId = userId;
+        return axios
+            .post(API_URL + "editMarker", marker)
             .then((result) => {
                 return result;
             });
