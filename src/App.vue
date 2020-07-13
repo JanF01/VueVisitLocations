@@ -126,6 +126,12 @@ export default {
           return Promise.reject(error);
         }
       );
+      GetService.getUserPublic().then(
+        () => {},
+        (error) => {
+          return Promise.reject(error);
+        }
+      );
 
       const google = await gmapsInit();
       const geocoder = new google.maps.Geocoder();
@@ -292,6 +298,20 @@ export default {
           icon: markerImage,
           animation: google.maps.Animation.BOUNCE,
         });
+        GetService.addMarker({
+          title: Marker.title,
+          description: "",
+          lat: Marker.getPosition().lat(),
+          lng: Marker.getPosition().lng(),
+          date: "2020-07-13",
+        }).then(
+          (points) => {
+            console.log(points.data);
+          },
+          (error) => {
+            return Promise.reject(error);
+          }
+        );
         Marker.addListener("click", () => {
           map.setZoom(12);
           map.setCenter(Marker.getPosition());

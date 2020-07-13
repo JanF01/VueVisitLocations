@@ -29,8 +29,32 @@ users.get("/points", (req, res) => {
 
 users.post("/addMarker", (req, res) => {
     let markerData = {
-
+        userId: req.body.userId,
+        title: req.body.title,
+        description: req.body.description,
+        lat: req.body.lat,
+        lng: req.body.lng,
+        date: req.body.date
     }
+
+
+    Marker.findOne({
+        where: {
+            lat: markerData.lat,
+            lng: markerData.lng
+        }
+    }).then((marker) => {
+        if (!marker) {
+            Marker.create(markerData).then((point) => {
+
+                res.send("Success");
+            }).catch((error) => {
+                res.send("Error");
+            });
+        } else {
+            res.send("Marker exists");
+        }
+    })
 })
 
 users.post("/register", (req, res) => {

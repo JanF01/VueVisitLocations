@@ -2,27 +2,47 @@ import axios from "axios";
 import authHeader from "./auth.header.js";
 
 const API_URL = "http://localhost:3000/api/";
+var userId = null;
 
 class UserService {
-  getUserPublic() {
-    return axios
-      .get(API_URL + "public", {
-        headers: authHeader(),
-      })
-      .then((result) => {
-        return result;
-      });
-  }
+    getUserPublic() {
+        return axios
+            .get(API_URL + "public", {
+                headers: authHeader(),
+            })
+            .then((result) => {
 
-  getUserPoints() {
-    return axios
-      .get(API_URL + "points", {
-        headers: authHeader(),
-      })
-      .then((result) => {
-        return result;
-      });
-  }
+                if (result.data.id) {
+                    userId = result.data.id;
+                }
+                return result;
+            });
+    }
+
+    getUserPoints() {
+        return axios
+            .get(API_URL + "points", {
+                headers: authHeader(),
+            })
+            .then((result) => {
+                return result;
+            });
+    }
+    addMarker(marker) {
+        let markerData = {
+            userId: userId,
+            title: marker.title,
+            description: marker.description,
+            lat: marker.lat,
+            lng: marker.lng,
+            date: marker.date
+        }
+        return axios
+            .post(API_URL + "addMarker", markerData)
+            .then((result) => {
+                return result;
+            });
+    }
 }
 
 export default new UserService();
