@@ -56,6 +56,9 @@ export default {
     async sendLoginRequest() {
       this.loading = true;
       if (this.user.username && this.user.password) {
+        if (this.user.username.length < 3) {
+          Vue.toasted.global.loginShort().goAway(2900);
+        }
         await this.$store.dispatch("auth/login", this.user).then(
           () => {},
           (error) => {

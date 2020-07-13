@@ -1,9 +1,10 @@
 export default function authHeader() {
-    let user = JSON.parse(localStorage.getItem('user'));
+    let user = localStorage.getItem('user');
 
-    if (user && user.token) {
+
+    if (user) {
         return {
-            'x-access-token': user.token
+            'x-access-token': user.substring(10, user.length - 2)
         }
     } else {
         return {};

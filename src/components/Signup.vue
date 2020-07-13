@@ -5,11 +5,11 @@
         <h3 class="title has-text-black">Sign up</h3>
         <hr class="login-hr is-dark" />
         <p class="subtitle has-text-black">Create your own map</p>
-        <form @submit.prevent="register">
+        <form @submit.prevent="sendRegisterRequest">
           <div class="field">
             <div class="control">
               <input
-                v-model="username"
+                v-model="user.username"
                 type="text"
                 class="input"
                 placeholder="Login"
@@ -20,7 +20,7 @@
           <div class="field">
             <div class="control">
               <input
-                v-model="email"
+                v-model="user.email"
                 type="email"
                 class="input"
                 placeholder="E-mail"
@@ -31,7 +31,7 @@
           <div class="field">
             <div class="control">
               <input
-                v-model="password"
+                v-model="user.password"
                 type="password"
                 class="input"
                 placeholder="Password"
@@ -42,7 +42,7 @@
           <div class="field">
             <div class="control">
               <input
-                v-model="passwordr"
+                v-model="user.passwordr"
                 type="password"
                 class="input"
                 placeholder="Repeat Password"
@@ -63,25 +63,36 @@
 </template>
 
 <script>
-import AuthService from "../services/auth.service";
+import Vue from "vue";
+import User from "../models/user";
 
 export default {
   name: "register-panel",
   data: function() {
     return {
-      username: "",
-      password: "",
-      passwordr: "",
-      email: "",
+      user: new User("", ""),
+      loading: false,
     };
   },
   methods: {
-    sendRegisterRequest() {
-      AuthService.register({
-        username: this.username,
-        password: this.password,
-        email: this.email,
-      });
+    async sendRegisterRequest() {
+      this.loading = true;
+      if (
+        this.user.username &&
+        this.user.password &&
+        this.user.passwordr &&
+        this.user.email
+      ) {
+        await this.$store.dispatch("auth/register", this.user).then(
+          () => {},
+          (error) => {
+            this.loading = false;
+            console.log(", errorString: " + error.toString());
+          }
+        );
+      } else {
+        Vue.toasted.global.noData().goAway(2900);
+      }
     },
   },
 };

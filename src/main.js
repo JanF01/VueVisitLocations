@@ -22,6 +22,11 @@ Vue.toasted.register("nickUsed", "The nick has been used", {
   icon: "error_outline",
 });
 
+Vue.toasted.register('registerSuccess', "Register Successfull", {
+  type: 'success',
+  icon: 'check_circle',
+})
+
 Vue.toasted.register("logedIn", "Successful Login", {
   type: "success",
   icon: "check_circle",
@@ -37,7 +42,7 @@ Vue.toasted.register("wrongPassword", "Incorrect Password", {
   icon: "error_outline",
 });
 
-Vue.toasted.register("logedIn", "Too short login", {
+Vue.toasted.register("loginShort", "Too short login", {
   type: "error",
   icon: "error_outline",
 });
@@ -47,7 +52,7 @@ Vue.toasted.register("noData", "Fill in login and password", {
   icon: "error_outline",
 });
 
-Vue.toasted.register("logedIn", "Didn't pass password requirements", {
+Vue.toasted.register("passwordError", "Didn't pass password requirements", {
   type: "error",
   icon: "error_outline",
 });

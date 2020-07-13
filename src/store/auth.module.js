@@ -1,6 +1,8 @@
 import AuthService from "../services/auth.service";
 
-const user = JSON.parse(localStorage.getItem("user"));
+
+
+const user = localStorage.getItem("user");
 const InitialState = user ? {
     status: {
         loggedIn: true,
@@ -22,8 +24,12 @@ export const auth = {
         }, user) {
             AuthService.login(user).then(
                 (user) => {
-                    commit("loginSuccess", user);
-                    return Promise.resolve(user);
+                    if (user != undefined) {
+                        commit("loginSuccess", user);
+                        return Promise.resolve(user);
+                    } else {
+                        commit("loginFailure");
+                    }
                 },
                 (error) => {
                     commit("loginFailure");
@@ -41,10 +47,10 @@ export const auth = {
         register({
             commit
         }, user) {
-            return AuthService.register(user).then(
-                (response) => {
+            AuthService.register(user).then(
+                (user) => {
                     commit("registerSuccess");
-                    return Promise.resolve(response.data);
+                    return Promise.resolve(user);
                 },
                 (error) => {
                     commit("registerFailure");
