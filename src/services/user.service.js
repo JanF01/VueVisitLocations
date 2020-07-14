@@ -19,14 +19,24 @@ class UserService {
             });
     }
 
-    getUserPoints() {
-        return axios
-            .get(API_URL + "points", {
-                headers: authHeader(),
-            })
-            .then((result) => {
-                return result;
-            });
+    getUserPoints(nick) {
+        if (nick == "-") {
+            return axios
+                .get(API_URL + "points", {
+                    headers: authHeader(),
+                })
+                .then((result) => {
+                    return result;
+                });
+        } else {
+            return axios
+                .get(API_URL + "points", {
+                    headers: nick,
+                })
+                .then((result) => {
+                    return result;
+                });
+        }
     }
     addMarker(marker) {
         marker.userId = userId;

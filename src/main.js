@@ -12,26 +12,34 @@ Vue.use(Vuetify, {
   iconfont: "md",
 });
 
+//Friend
 
+Vue.toasted.register("shortName", "Too short nick", {
+  type: "error",
+  icon: "error_outline",
+});
+
+Vue.toasted.register("friendSuccess", "Here is your friend's map", {
+  type: "success",
+  icon: "check_circle",
+});
 
 // Markers
 
 Vue.toasted.register("markerSuccess", "Marker Edited", {
-  type: 'success',
-  icon: "check_circle"
+  type: "success",
+  icon: "check_circle",
 });
 
 Vue.toasted.register("deletedMarker", "Marker Deleted", {
-  type: 'info',
-  icon: "check_circle"
-})
-
-Vue.toasted.register("markerError", "There was an issue", {
-  type: 'error',
-  icon: "error_outline"
+  type: "info",
+  icon: "check_circle",
 });
 
-
+Vue.toasted.register("markerError", "There was an issue", {
+  type: "error",
+  icon: "error_outline",
+});
 
 // RegisterLogin
 
@@ -45,10 +53,10 @@ Vue.toasted.register("nickUsed", "The nick has been used", {
   icon: "error_outline",
 });
 
-Vue.toasted.register('registerSuccess', "Register Successfull", {
-  type: 'success',
-  icon: 'check_circle',
-})
+Vue.toasted.register("registerSuccess", "Register Successfull", {
+  type: "success",
+  icon: "check_circle",
+});
 
 Vue.toasted.register("logedIn", "Successful Login", {
   type: "success",

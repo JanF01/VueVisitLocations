@@ -249,7 +249,7 @@ export default {
         labelOrigin: labelOriginHole,
       };
 
-      await UserService.getUserPoints().then(
+      await UserService.getUserPoints("-").then(
         (points) => {
           for (let marker of points.data) {
             let Marker = new google.maps.Marker({
