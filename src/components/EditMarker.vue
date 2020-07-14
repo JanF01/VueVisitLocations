@@ -1,7 +1,9 @@
 <template>
   <div id="edit-marker">
     <div class="container field box is-4 has-text-centered">
-      <form @submit.prevent="sendEditRequest">
+      <delete-icon class="bin" @click="sendDeleteRequest" />
+      <clear-icon class="clear" @click="clear" />
+      <form @submit.prevent="sendEditRequest(false)">
         <div class="field">
           <div class="control">
             <input
@@ -39,6 +41,8 @@
 
 <script>
 import UserService from "../services/user.service";
+import DeleteIcon from "vue-material-design-icons/DeleteForever.vue";
+import ClearIcon from "vue-material-design-icons/DeleteSweep.vue";
 import Vue from "vue";
 
 export default {
@@ -46,18 +50,45 @@ export default {
   props: {
     marker: null,
   },
+  components: {
+    DeleteIcon,
+    ClearIcon,
+  },
   methods: {
-    async sendEditRequest() {
+    async sendEditRequest(noClose) {
       UserService.editMarker(this.marker).then(
-        (result) => {
+        () => {
           Vue.toasted.global.markerSuccess().goAway(2900);
-          this.$emit("edited", result);
+          this.$emit("edited", noClose);
         },
         (error) => {
           console.log(error);
           Vue.toasted.global.markerError().goAway(2900);
         }
       );
+    },
+    async sendDeleteRequest() {
+      UserService.deleteMarker(this.marker).then(
+        () => {
+          Vue.toasted.global.deletedMarker().goAway(2900);
+          this.$emit("edited", false);
+        },
+        (error) => {
+          console.log(error);
+          Vue.toasted.global.markerError().goAway(2900);
+        }
+      );
+    },
+    clear() {
+      this.marker.description = "";
+      this.marker.title = "";
+      let date = new Date(Date.now()).toLocaleDateString().replace(/\./g, "-");
+      this.marker.date =
+        date.substring(6, 10) +
+        date.substring(2, 5) +
+        "-" +
+        date.substring(0, 2);
+      this.sendEditRequest(true);
     },
   },
 };
@@ -72,6 +103,36 @@ textarea {
   min-height: 8em;
 }
 
+.material-design-icon.bin,
+.material-design-icon.clear {
+  height: 1.3em;
+  width: 1.3em;
+  position: absolute;
+  top: -1.3em;
+  left: -0.2em;
+  z-index: 10;
+  color: black;
+  font-size: 2em;
+  cursor: pointer;
+}
+
+.material-design-icon.clear {
+  left: 1.2em;
+  top: -1.375em;
+  height: 1.45em;
+  width: 1.45em;
+}
+
+.material-design-icon.bin > .material-design-icon__svg {
+  height: 1.3em;
+  width: 1.3em;
+  color: #ee0000;
+}
+
+.material-design-icon.clear > .material-design-icon__svg {
+  height: 1.45em;
+  width: 1.45em;
+}
 @media (max-width: 4000px) {
   #edit-marker {
     top: 35%;

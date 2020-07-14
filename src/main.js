@@ -21,6 +21,11 @@ Vue.toasted.register("markerSuccess", "Marker Edited", {
   icon: "check_circle"
 });
 
+Vue.toasted.register("deletedMarker", "Marker Deleted", {
+  type: 'info',
+  icon: "check_circle"
+})
+
 Vue.toasted.register("markerError", "There was an issue", {
   type: 'error',
   icon: "error_outline"

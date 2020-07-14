@@ -46,6 +46,15 @@ class UserService {
                 return result;
             });
     }
+
+    deleteMarker(marker) {
+        marker.userId = userId;
+        return axios
+            .post(API_URL + "deleteMarker", marker)
+            .then((result) => {
+                return result;
+            })
+    }
 }
 
 export default new UserService();

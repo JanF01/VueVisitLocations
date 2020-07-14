@@ -25,11 +25,33 @@
             <a
               class="navbar-item"
               v-bind:class="{
-                'is-active': !(loginState || registerState) || loggedIn,
+                'is-active':
+                  !(loginState || registerState || markerList) && loggedIn,
               }"
               @click="goMap"
             >
               Map
+            </a>
+            <a
+              class="navbar-item"
+              v-if="loggedIn"
+              v-bind:class="{
+                'is-active':
+                  !(loginState || registerState) && loggedIn && markerList,
+              }"
+              @click="goMarkerList"
+            >
+              Marker list
+            </a>
+            <a
+              class="navbar-item"
+              v-if="loggedIn"
+              v-bind:class="{
+                'is-active':
+                  !(loginState || registerState) && loggedIn && checkOut,
+              }"
+            >
+              Friends
             </a>
             <a
               class="navbar-item"
@@ -66,6 +88,12 @@
       v-bind:marker="editedMarker"
       @edited="markerEdited"
     ></edit-marker>
+    <marker-list
+      v-if="markerList"
+      v-bind:markers="markerInfo"
+      @editmarker="goEditMarker"
+    >
+    </marker-list>
   </main>
 </template>
 
@@ -73,6 +101,7 @@
 import LoginPanel from "./components/Login.vue";
 import RegisterPanel from "./components/Signup.vue";
 import EditMarker from "./components/EditMarker.vue";
+import MarkerList from "./components/MarkerList.vue";
 import UserService from "./services/user.service";
 import gmapsInit from "./utils/gmaps.js";
 
@@ -85,11 +114,13 @@ export default {
     return {
       user: new User("", ""),
       loginState: false,
-      registerState: true,
+      registerState: false,
       editMarker: false,
       markers: [],
       editedMarker: null,
       map: null,
+      markerList: false,
+      markerInfo: [],
     };
   },
   computed: {
@@ -117,21 +148,79 @@ export default {
     goMap() {
       this.loginState = false;
       this.registerState = false;
+      this.markerList = false;
+      this.openMobileMenu();
+    },
+    goMarkerList() {
+      this.markerList = true;
+      this.openMobileMenu();
     },
     login() {
       this.loginState = true;
       this.registerState = false;
+      this.openMobileMenu();
     },
     register() {
       this.loginState = false;
       this.registerState = true;
+      this.openMobileMenu();
     },
     logOut() {
       this.$store.dispatch("auth/logout", this.user);
     },
-    markerEdited() {
-      this.editMarker = false;
-      this.marker = null;
+    goEditMarker(marker) {
+      var lat, lng;
+      try {
+        lat = marker.getPosition().lat();
+      } catch (error) {
+        lat = marker.lat;
+      }
+      try {
+        lng = marker.getPosition().lng();
+      } catch (error) {
+        lng = marker.lng;
+      }
+
+      console.log(lat);
+
+      var description, date;
+
+      try {
+        description = marker.description;
+        date = marker.date;
+      } catch (error) {
+        description = "";
+        date = new Date();
+      }
+
+      let info = new MarkerInfo(
+        null,
+        lat,
+        lng,
+        marker.title,
+        description,
+        date
+      );
+
+      this.map.setZoom(12);
+      let pos;
+      try {
+        pos = marker.getPosition();
+      } catch (error) {
+        pos = { lat: parseFloat(marker.lat), lng: parseFloat(marker.lng) };
+      }
+      this.map.setCenter(pos);
+      this.map.panBy(0, 200);
+
+      this.editMarker = true;
+      this.markerList = false;
+      this.editedMarker = info;
+    },
+    markerEdited(noClose) {
+      if (!noClose) {
+        this.editMarker = false;
+        this.marker = null;
+      }
       this.getPoints();
     },
     async getPoints() {
@@ -139,6 +228,7 @@ export default {
         this.markers[i].setMap(null);
       }
       this.markers.length = 0;
+      this.markerInfo.length = 0;
 
       const google = await gmapsInit();
 
@@ -159,7 +249,7 @@ export default {
         labelOrigin: labelOriginHole,
       };
 
-      UserService.getUserPoints().then(
+      await UserService.getUserPoints().then(
         (points) => {
           for (let marker of points.data) {
             let Marker = new google.maps.Marker({
@@ -173,27 +263,30 @@ export default {
               animation: google.maps.Animation.BOUNCE,
             });
 
+            let edited = new MarkerInfo(
+              null,
+              parseFloat(marker.lat),
+              parseFloat(marker.lng),
+              marker.title,
+              marker.description,
+              marker.date
+            );
+
             Marker.addListener("click", () => {
               this.map.setZoom(11);
               this.map.setCenter(Marker.getPosition());
               this.map.panBy(0, 200);
 
-              this.editMarker = true;
-              this.editedMarker = new MarkerInfo(
-                null,
-                parseFloat(marker.lat),
-                parseFloat(marker.lng),
-                marker.title,
-                marker.description,
-                marker.date
-              );
+              console.log(edited.lat);
+              this.goEditMarker(edited);
             });
+
+            this.markers.push(Marker);
+            this.markerInfo.push(edited);
 
             setTimeout(() => {
               Marker.setAnimation(null);
-            }, 1000);
-
-            this.markers.push(Marker);
+            }, 600);
           }
         },
         (error) => {
@@ -206,6 +299,7 @@ export default {
     LoginPanel,
     RegisterPanel,
     EditMarker,
+    MarkerList,
   },
   async mounted() {
     try {
@@ -375,17 +469,16 @@ export default {
           }
         );
 
-        this.getPoints(google);
+        this.getPoints();
       }
 
       map.addListener("click", (event) => {
         this.editMarker = false;
         var Marker = new google.maps.Marker({
           position: event.latLng,
-          map: map,
-          title: "Your title",
+          map: null,
+          title: "",
           icon: markerImage,
-          animation: google.maps.Animation.BOUNCE,
         });
 
         let info = new MarkerInfo(
@@ -398,24 +491,13 @@ export default {
         );
 
         UserService.addMarker(info).then(
-          () => {},
+          () => {
+            this.getPoints();
+          },
           (error) => {
             return Promise.reject(error);
           }
         );
-        Marker.addListener("click", () => {
-          map.setZoom(12);
-          map.setCenter(Marker.getPosition());
-          map.panBy(0, 200);
-
-          this.editMarker = true;
-          this.editedMarker = info;
-        });
-        setTimeout(() => {
-          Marker.setAnimation(null);
-        }, 600);
-
-        this.markers.push(Marker);
       });
       map.addListener("drag", () => {
         this.editMarker = false;
@@ -430,20 +512,29 @@ export default {
 <style>
 @import "https://jenil.github.io/bulmaswatch/united/bulmaswatch.min.css";
 
+body {
+  margin: 0 auto;
+  overflow: hidden;
+}
+main {
+  overflow: hidden;
+}
+
 .navbar-item > h1 {
   color: white;
 }
 
 .map {
-  width: 100%;
-  height: 100%;
+  width: 97%;
+  height: 97%;
+  overflow: hidden;
 }
 .map > img {
-  width: 100%;
+  width: 98%;
 }
 
 .App {
   width: 100vw;
-  height: 95vh;
+  height: 94vh;
 }
 </style>

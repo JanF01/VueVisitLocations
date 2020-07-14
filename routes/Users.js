@@ -105,6 +105,30 @@ users.post("/editMarker", (req, res) => {
     })
 })
 
+
+users.post("/deleteMarker", (req, res) => {
+    let userId = req.body.userId;
+    let lat = req.body.lat;
+    let lng = req.body.lng;
+
+    Marker.findOne({
+        where: {
+            userId: userId,
+            lat: lat,
+            lng: lng
+        }
+    }).then((marker) => {
+        if (marker) {
+            marker.destroy().then(() => {
+                res.send("Success")
+            });
+        } else {
+            res.send("Error");
+        }
+    })
+
+})
+
 users.post("/register", (req, res) => {
     const userData = {
         username: req.body.username,
