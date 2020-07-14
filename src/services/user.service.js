@@ -18,6 +18,16 @@ class UserService {
                 return result;
             });
     }
+    checkForUser(nick) {
+        return axios
+            .get(API_URL + "userExists", {
+                headers: {
+                    'nick': nick
+                }
+            }).then((result) => {
+                return result;
+            });
+    }
 
     getUserPoints(nick) {
         if (nick == "-") {
@@ -31,13 +41,30 @@ class UserService {
         } else {
             return axios
                 .get(API_URL + "points", {
-                    headers: nick,
+                    headers: {
+                        'nick': nick
+                    },
                 })
                 .then((result) => {
                     return result;
                 });
         }
     }
+
+    getUserPoint(lat, lng) {
+        return axios
+            .get(API_URL + "point", {
+                headers: {
+                    'lat': lat,
+                    'lng': lng,
+                    'userid': userId,
+                }
+            })
+            .then((result) => {
+                return result;
+            });
+    }
+
     addMarker(marker) {
         marker.userId = userId;
 

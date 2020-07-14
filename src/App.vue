@@ -26,7 +26,8 @@
               class="navbar-item"
               v-bind:class="{
                 'is-active':
-                  !(loginState || registerState || markerList) && loggedIn,
+                  !(loginState || registerState || markerList || checkOut) &&
+                  loggedIn,
               }"
               @click="goMap"
             >
@@ -45,13 +46,17 @@
             </a>
             <a
               class="navbar-item"
-              v-if="loggedIn"
+              v-if="loggedIn && !editingBlocked"
               v-bind:class="{
                 'is-active':
                   !(loginState || registerState) && loggedIn && checkOut,
               }"
+              @click="goCheckout"
             >
               Friends
+            </a>
+            <a class="navbar-item" v-if="editingBlocked" @click="outCheckout">
+              My map
             </a>
             <a
               class="navbar-item"
@@ -94,15 +99,34 @@
       @editmarker="goEditMarker"
     >
     </marker-list>
+    <check-friend v-if="checkOut" @getfriend="getFriendPoints" @close="goMap">
+    </check-friend>
+
+    <div class="showMarker" v-if="checkingMarker">
+      <div class="container field box is-4 has-text-centered">
+        <div class="field">
+          <h1 class="sub-title">{{ editedMarker.title }}</h1>
+        </div>
+        <div class="field">
+          <h3 class="date">{{ editedMarker.date }}</h3>
+        </div>
+        <div class="field">
+          <h3 class="description">{{ editedMarker.description }}</h3>
+        </div>
+      </div>
+    </div>
   </main>
 </template>
 
 <script>
-import LoginPanel from "./components/Login.vue";
-import RegisterPanel from "./components/Signup.vue";
-import EditMarker from "./components/EditMarker.vue";
-import MarkerList from "./components/MarkerList.vue";
+import LoginPanel from "./components/Login";
+import RegisterPanel from "./components/Signup";
+import EditMarker from "./components/EditMarker";
+import MarkerList from "./components/MarkerList";
+import CheckFriend from "./components/CheckFriend";
+
 import UserService from "./services/user.service";
+
 import gmapsInit from "./utils/gmaps.js";
 
 import User from "./models/user";
@@ -114,13 +138,17 @@ export default {
     return {
       user: new User("", ""),
       loginState: false,
-      registerState: false,
+      registerState: true,
       editMarker: false,
       markers: [],
       editedMarker: null,
+      checkingMarker: false,
+      checkOut: false,
       map: null,
       markerList: false,
       markerInfo: [],
+      editingBlocked: false,
+      checkoutTimeout: null,
     };
   },
   computed: {
@@ -133,6 +161,13 @@ export default {
     registerPanel() {
       return this.registerState;
     },
+  },
+  components: {
+    LoginPanel,
+    RegisterPanel,
+    EditMarker,
+    MarkerList,
+    CheckFriend,
   },
   created() {
     if (this.loggedIn) {
@@ -149,11 +184,22 @@ export default {
       this.loginState = false;
       this.registerState = false;
       this.markerList = false;
+      this.checkOut = false;
       this.openMobileMenu();
     },
     goMarkerList() {
       this.markerList = true;
       this.openMobileMenu();
+    },
+    goCheckout() {
+      this.markerList = false;
+      this.checkOut = true;
+      this.openMobileMenu();
+    },
+    outCheckout() {
+      this.checkOut = false;
+      this.openMobileMenu();
+      this.getPoints("-");
     },
     login() {
       this.loginState = true;
@@ -168,62 +214,49 @@ export default {
     logOut() {
       this.$store.dispatch("auth/logout", this.user);
     },
+    overInfoBox(marker, event) {
+      this.checkingMarker = true;
+      this.editedMarker = marker;
+      this.checkoutTimeout = setTimeout(() => {
+        let box = document.querySelector(".showMarker");
+        box.style.left = event.tb.clientX + 50 + "px";
+        box.style.top = event.tb.clientY - 100 + "px";
+      }, 200);
+    },
+    leaveInfoBox() {
+      clearTimeout(this.checkoutTimeout);
+      this.checkingMarker = false;
+    },
     goEditMarker(marker) {
-      var lat, lng;
-      try {
-        lat = marker.getPosition().lat();
-      } catch (error) {
-        lat = marker.lat;
+      if (!this.editingBlocked) {
+        this.checkingMarker = false;
+
+        this.map.setZoom(12);
+
+        let pos = { lat: marker.lat, lng: marker.lng };
+
+        this.map.setCenter(pos);
+        this.map.panBy(0, 200);
+
+        this.editedMarker = marker;
+
+        this.editMarker = true;
+        this.markerList = false;
       }
-      try {
-        lng = marker.getPosition().lng();
-      } catch (error) {
-        lng = marker.lng;
-      }
-
-      console.log(lat);
-
-      var description, date;
-
-      try {
-        description = marker.description;
-        date = marker.date;
-      } catch (error) {
-        description = "";
-        date = new Date();
-      }
-
-      let info = new MarkerInfo(
-        null,
-        lat,
-        lng,
-        marker.title,
-        description,
-        date
-      );
-
-      this.map.setZoom(12);
-      let pos;
-      try {
-        pos = marker.getPosition();
-      } catch (error) {
-        pos = { lat: parseFloat(marker.lat), lng: parseFloat(marker.lng) };
-      }
-      this.map.setCenter(pos);
-      this.map.panBy(0, 200);
-
-      this.editMarker = true;
-      this.markerList = false;
-      this.editedMarker = info;
     },
     markerEdited(noClose) {
       if (!noClose) {
         this.editMarker = false;
         this.marker = null;
       }
-      this.getPoints();
+      this.getPoints("-");
     },
-    async getPoints() {
+    getFriendPoints(friend) {
+      this.checkOut = false;
+      this.editingBlocked = true;
+      this.getPoints(friend);
+    },
+    async getPoints(target) {
       for (let i = 0; i < this.markers.length; i++) {
         this.markers[i].setMap(null);
       }
@@ -232,24 +265,9 @@ export default {
 
       const google = await gmapsInit();
 
-      var pinColor = "black";
+      this.$markerImage.anchor = new google.maps.Point(12, 17);
 
-      var pinSVGHole =
-        "M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z";
-      var labelOriginHole = new google.maps.Point(12, 15);
-
-      var markerImage = {
-        path: pinSVGHole,
-        anchor: new google.maps.Point(12, 17),
-        fillOpacity: 1,
-        fillColor: pinColor,
-        strokeWeight: 1,
-        strokeColor: "black",
-        scale: 2,
-        labelOrigin: labelOriginHole,
-      };
-
-      await UserService.getUserPoints("-").then(
+      UserService.getUserPoints(target).then(
         (points) => {
           for (let marker of points.data) {
             let Marker = new google.maps.Marker({
@@ -259,7 +277,7 @@ export default {
               },
               map: this.map,
               title: marker.title,
-              icon: markerImage,
+              icon: this.$markerImage,
               animation: google.maps.Animation.BOUNCE,
             });
 
@@ -268,6 +286,7 @@ export default {
               parseFloat(marker.lat),
               parseFloat(marker.lng),
               marker.title,
+              marker.country,
               marker.description,
               marker.date
             );
@@ -277,8 +296,13 @@ export default {
               this.map.setCenter(Marker.getPosition());
               this.map.panBy(0, 200);
 
-              console.log(edited.lat);
               this.goEditMarker(edited);
+            });
+            Marker.addListener("mouseover", (e) => {
+              this.overInfoBox(edited, e);
+            });
+            Marker.addListener("mouseout", () => {
+              this.leaveInfoBox();
             });
 
             this.markers.push(Marker);
@@ -294,12 +318,60 @@ export default {
         }
       );
     },
-  },
-  components: {
-    LoginPanel,
-    RegisterPanel,
-    EditMarker,
-    MarkerList,
+    async getPoint(lat, lng) {
+      const google = await gmapsInit();
+
+      this.$markerImage.anchor = new google.maps.Point(12, 17);
+
+      UserService.getUserPoint(lat, lng).then(
+        (point) => {
+          let Marker = new google.maps.Marker({
+            position: {
+              lat: parseFloat(point.data.lat),
+              lng: parseFloat(point.data.lng),
+            },
+            map: this.map,
+            title: point.data.title,
+            icon: this.$markerImage,
+            animation: google.maps.Animation.BOUNCE,
+          });
+
+          let edited = new MarkerInfo(
+            null,
+            parseFloat(point.data.lat),
+            parseFloat(point.data.lng),
+            point.data.title,
+            point.data.country,
+            point.data.description,
+            point.data.date
+          );
+
+          Marker.addListener("click", () => {
+            this.map.setZoom(11);
+            this.map.setCenter(Marker.getPosition());
+            this.map.panBy(0, 200);
+
+            this.goEditMarker(edited);
+          });
+          Marker.addListener("mouseover", (e) => {
+            this.overInfoBox(edited, e);
+          });
+          Marker.addListener("mouseout", () => {
+            this.leaveInfoBox();
+          });
+
+          this.markers.push(Marker);
+          this.markerInfo.push(edited);
+
+          setTimeout(() => {
+            Marker.setAnimation(null);
+          }, 600);
+        },
+        (error) => {
+          return Promise.reject(error);
+        }
+      );
+    },
   },
   async mounted() {
     try {
@@ -444,22 +516,7 @@ export default {
         map.fitBounds(result[0].geometry.viewport);
       });
 
-      var pinColor = "black";
-
-      var pinSVGHole =
-        "M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z";
-      var labelOriginHole = new google.maps.Point(12, 15);
-
-      var markerImage = {
-        path: pinSVGHole,
-        anchor: new google.maps.Point(12, 17),
-        fillOpacity: 1,
-        fillColor: pinColor,
-        strokeWeight: 1,
-        strokeColor: "black",
-        scale: 2,
-        labelOrigin: labelOriginHole,
-      };
+      this.$markerImage.anchor = new google.maps.Point(12, 17);
 
       if (this.loggedIn) {
         UserService.getUserPublic().then(
@@ -469,39 +526,58 @@ export default {
           }
         );
 
-        this.getPoints();
-      }
+        this.getPoints("-");
 
-      map.addListener("click", (event) => {
-        this.editMarker = false;
-        var Marker = new google.maps.Marker({
-          position: event.latLng,
-          map: null,
-          title: "",
-          icon: markerImage,
+        map.addListener("click", (event) => {
+          this.editMarker = false;
+          var Marker = new google.maps.Marker({
+            position: event.latLng,
+            map: null,
+            icon: this.$markerImage,
+          });
+
+          var latlng = {
+            lat: Marker.getPosition().lat(),
+            lng: Marker.getPosition().lng(),
+          };
+
+          geocoder.geocode({ location: latlng }, async (results, status) => {
+            if (status === "OK") {
+              if (results[0]) {
+                for (let res of results) {
+                  if (res.types.includes("country")) {
+                    let info = new MarkerInfo(
+                      null,
+                      Marker.getPosition().lat(),
+                      Marker.getPosition().lng(),
+                      "",
+                      res.formatted_address,
+                      "",
+                      Date.now()
+                    );
+
+                    UserService.addMarker(info).then(
+                      () => {
+                        this.getPoint(info.lat, info.lng);
+                      },
+                      (error) => {
+                        return Promise.reject(error);
+                      }
+                    );
+                  }
+                }
+              } else {
+                window.alert("No results found");
+              }
+            } else {
+              window.alert("Geocoder failed due to: " + status);
+            }
+          });
         });
-
-        let info = new MarkerInfo(
-          null,
-          Marker.getPosition().lat(),
-          Marker.getPosition().lng(),
-          Marker.title,
-          "",
-          Date.now()
-        );
-
-        UserService.addMarker(info).then(
-          () => {
-            this.getPoints();
-          },
-          (error) => {
-            return Promise.reject(error);
-          }
-        );
-      });
-      map.addListener("drag", () => {
-        this.editMarker = false;
-      });
+        map.addListener("drag", () => {
+          this.editMarker = false;
+        });
+      }
     } catch (error) {
       console.log(error);
     }
@@ -519,7 +595,6 @@ body {
 main {
   overflow: hidden;
 }
-
 .navbar-item > h1 {
   color: white;
 }
@@ -536,5 +611,10 @@ main {
 .App {
   width: 100vw;
   height: 94vh;
+}
+
+.showMarker {
+  position: absolute;
+  width: 18em;
 }
 </style>

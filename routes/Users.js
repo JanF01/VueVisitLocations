@@ -35,19 +35,83 @@ users.get("/public", (req, res) => {
     res.send(jwt_decode(req.headers["x-access-token"]));
 });
 
-users.get("/points", (req, res) => {
-    let user = jwt_decode(req.headers["x-access-token"]);
+users.get("/point", (req, res) => {
+    let lat = req.headers['lat'];
+    let lng = req.headers['lng'];
+    let userId = req.headers['userid'];
 
-    Marker.findAll({
+    Marker.findOne({
         where: {
-            userId: user.id,
-        },
-    }).then((markers) => {
-        if (markers) {
-            res.send(markers);
+            lat: lat,
+            lng: lng,
+            userId: userId,
         }
-    });
+    }).then((marker) => {
+        if (marker) {
+            res.send(marker);
+        }
+    })
+})
+
+users.get("/points", (req, res) => {
+
+    if (req.headers["x-access-token"] != undefined) {
+
+        let user = jwt_decode(req.headers["x-access-token"]);
+
+        Marker.findAll({
+            where: {
+                userId: user.id,
+            },
+        }).then((markers) => {
+            if (markers) {
+                res.send(markers);
+            }
+        });
+
+    } else {
+        let user = req.headers['nick'];
+
+        User.findOne({
+            where: {
+                username: user
+            }
+        }).then((instance) => {
+            if (instance) {
+                Marker.findAll({
+                    where: {
+                        userId: instance.id
+                    }
+                }).then((markers) => {
+                    if (markers) {
+                        res.send(markers)
+                    }
+                })
+            }
+        })
+    }
+
+
+
 });
+
+users.get("/userExists", (req, res) => {
+    let user = req.headers['nick'];
+
+    User.findOne({
+        where: {
+            username: user
+        }
+    }).then((user) => {
+        if (user) {
+            res.send("User exists");
+        } else {
+            res.send("No user");
+        }
+    }, (error) => {
+        res.send("No user");
+    })
+})
 
 users.post("/addMarker", (req, res) => {
     var markerData = new marker.Data(req.body.userId,
@@ -55,6 +119,7 @@ users.post("/addMarker", (req, res) => {
         req.body.description,
         req.body.lat,
         req.body.lng,
+        req.body.country,
         req.body.date);
 
     Marker.findOne({

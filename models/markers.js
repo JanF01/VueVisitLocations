@@ -26,6 +26,9 @@ const Marker = db.sequelize.define(
     lng: {
       type: Sequelize.DECIMAL
     },
+    country: {
+      type: Sequelize.STRING(255)
+    },
     date: {
       type: Sequelize.DATE
     },

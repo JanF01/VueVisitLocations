@@ -23,7 +23,7 @@
           {{ marker.date }}
         </td>
         <td>
-          Afganistan
+          {{ marker.country }}
         </td>
         <td>
           <a @click="emitEdit(marker)"><edit-icon /> </a>

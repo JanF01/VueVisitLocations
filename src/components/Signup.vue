@@ -4,7 +4,7 @@
       <div class="box">
         <h3 class="title has-text-black">Sign up</h3>
         <hr class="login-hr is-dark" />
-        <p class="subtitle has-text-black">Create your own map</p>
+        <p class="subtitle has-text-black">Take note of where you've been</p>
         <form @submit.prevent="sendRegisterRequest">
           <div class="field">
             <div class="control">
