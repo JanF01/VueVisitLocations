@@ -1,24 +1,16 @@
-# locationvisit
+# Visit Locations
 
-## Project setup
-```
-npm install
-```
+Application in Vue.js and node, based on Google Maps API.
 
-### Compiles and hot-reloads for development
-```
-npm run serve
-```
+Technologies used:
+- Vue.js
+- SCSS
+- Node
+- Express ( REST API )
+- JWT
+- Sequelize ORM
+- MySQL Database
 
-### Compiles and minifies for production
-```
-npm run build
-```
 
-### Lints and fixes files
-```
-npm run lint
-```
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+
